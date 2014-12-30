@@ -29,6 +29,7 @@ class Hugh():
 
         self.fade_through_black = None
         self.instant = None
+        self.increment_count = None
 
         self.freq = None
         self.pins = None
@@ -53,12 +54,12 @@ class Hugh():
 
         source_rgb = [ self.pi.get_PWM_dutycycle(self.pins[i]) for i in range (0, 3) ]
         current_rgb = source_rgb
-        increments = [ (target_rgb[i] - current_rgb[i]) / 255.0 for i in range (0, 3) ]
+        increments = [ (target_rgb[i] - current_rgb[i]) / float(self.increment_count) for i in range (0, 3) ]
 
         print "increments",increments
         
-        for chg in range (1, 256): # max of 255 levels; normalize fading for this many increments
-            # For each tick, the color should change 1/255th of the diff between source and target
+        for chg in range (1, self.increment_count + 1): # max of self.increment_count levels; normalize fading for this many increments
+            # For each tick, the color should change 1/(self.increment_count)th of the diff between source and target
             for i in range (0, 3):
                 target = source_rgb[i] + int(increments[i] * chg)
                     
@@ -68,6 +69,13 @@ class Hugh():
 
             current_rgb = [ self.pi.get_PWM_dutycycle(self.pins[i]) for i in range (0, 3) ]
 
+        # We're using floats as the increment of change, with an integer target. Sometimes the math
+        # is off by one at the end. This fixes that.
+        for i in range (0, 3):
+            self.pi.set_PWM_dutycycle(self.pins[i], target_rgb[i])
+
+        current_rgb = [ self.pi.get_PWM_dutycycle(self.pins[i]) for i in range (0, 3) ]
+        
         print "current_rgb", current_rgb
 
     def configure(self):
@@ -124,6 +132,17 @@ class Hugh():
                 print "INFO: fade through black transition changed to",fade_through_black,"from",self.fade_through_black
                 self.fade_through_black = fade_through_black
 
+        increment_count = self.scp.getint('transition', 'increment_count')
+        if increment_count < 1 or increment_count > 255:
+            print "ERROR: increment_count of",increment_count,"is out of range. It must be between 1 and 255 inclusive; defaulting to 255."
+            increment_count = 255
+        if self.increment_count is None:
+            self.increment_count = increment_count
+        else:
+            if self.increment_count != increment_count:
+                print "INFO: increment_count changed to",increment_count,"from",self.increment_count
+                self.increment_count = increment_count
+
         # color correction
         color_correction = [ self.scp.getfloat('color_correction', 'red'),
                              self.scp.getfloat('color_correction', 'green'),
@@ -179,7 +198,7 @@ class Hugh():
                     else: # RGB CSV file
                         self.parse_rgb_csv()
 
-            time.sleep(0.05)
+            time.sleep(0.5)
 
     def rainbow_demo(self):
         rainbow = [[255, 0, 0], [255, 127, 0], [255, 255, 0], [0, 255, 0], [0, 0, 255], [127, 0, 255], [0, 0, 0]]

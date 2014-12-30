@@ -20,13 +20,13 @@
 
 2. **An RGB LED strip** (I bought [this one](http://www.amazon.com/gp/product/B00AQT2G9S), but any 4-pin common-anode RGB LED strip will work. Deviations will work, but you'll need to come up with your own wiring diagram.)
 
-3. **A DC power supply** (My strip is 12VDC, with a maximum current of 6A, and I have a 12VDC 8.5A power supply.)
+3. **A DC power supply** (My strip is 12VDC, with a maximum current of 0.6A, and I have a 12VDC 8.5A power supply.)
 
 4. **Three MOSFETs** (I used [these](http://www.digikey.com/product-search/en?KeyWords=497-2765-5-ND) N-channel MOSFETs. Deviations can work, but you'll need to come up with your own wiring diagram.)
 
 5. **Three free GPIO pins**
 
-6. **At least 8% available CPU on your Pi**
+6. **At least 60% available CPU on your Pi**
 
 7. **Basic Linux skills** (package installing, file copying and editing, running commands)
 
