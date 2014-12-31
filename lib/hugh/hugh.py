@@ -14,11 +14,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import pigpio, time, csv, os, ConfigParser
+import pigpio, time, csv, os, ConfigParser, logging
 
 class Hugh():
 
     def __init__(self, config_file, rgb_csv_file):
+        self.logging = logging.getLogger(self.__class__.__name__)
+        logging.basicConfig(filename='hugh.log',level=logging.DEBUG)
+        
         self.pi = pigpio.pi() # local device GPIO
 
         # Config parsing
@@ -40,9 +43,21 @@ class Hugh():
         self.init_pins()
         self.set_frequency()
 
+    def _logdebug(self, message):
+        self.logging.debug("(" + self.__class__.__name__ + ") " + message)
+
+    def _loginfo(self, message):
+        self.logging.info("(" + self.__class__.__name__ + ") " + message)
+
+    def _logwarn(self, message):
+        self.logging.warn("(" + self.__class__.__name__ + ") " + message)
+
+    def _logerror(self, message):
+        self.logging.error("(" + self.__class__.__name__ + ") " + message)
+
     def fade_to_rgb(self, target_rgb, fade_through_black=True, instant=False):
         target_rgb = [ int(target_rgb[i] * self.color_correction[i]) for i in range (0, 3) ]
-        print "target_rgb",target_rgb
+        self._logdebug("target_rgb %s" % target_rgb)
 
         if instant: # jump directly to the new color; no fading
             for i in range (0, 3):
@@ -56,15 +71,12 @@ class Hugh():
         current_rgb = source_rgb
         increments = [ (target_rgb[i] - current_rgb[i]) / float(self.increment_count) for i in range (0, 3) ]
 
-        print "increments",increments
+        self._logdebug("increments %s" % increments)
         
         for chg in range (1, self.increment_count + 1): # max of self.increment_count levels; normalize fading for this many increments
             # For each tick, the color should change 1/(self.increment_count)th of the diff between source and target
             for i in range (0, 3):
                 target = source_rgb[i] + int(increments[i] * chg)
-                    
-                #print i,"changes at",chg,"to",target
-
                 self.pi.set_PWM_dutycycle(self.pins[i], target)
 
             current_rgb = [ self.pi.get_PWM_dutycycle(self.pins[i]) for i in range (0, 3) ]
@@ -76,7 +88,7 @@ class Hugh():
 
         current_rgb = [ self.pi.get_PWM_dutycycle(self.pins[i]) for i in range (0, 3) ]
         
-        print "current_rgb", current_rgb
+        self._loginfo("current_rgb %s" % current_rgb)
 
     def configure(self):
         """See if the configuration file has changed. If so, parse it and load in its values."""
@@ -102,7 +114,7 @@ class Hugh():
                     self.pi.set_PWM_dutycycle(pin, 0) # PWM off
                     self.pi.set_PWM_frequency(pin, 0) # 0 Hz
 
-                print "WARNING: GPIO pins changed to",pins,"from",self.pins
+                self._logwarn("GPIO pins changed to %s from %s" %(pins, self.pins))
                 self.pins = pins
                 self.init_pins()
 
@@ -111,7 +123,7 @@ class Hugh():
             self.freq = freq
         else:
             if self.freq != freq:
-                print "INFO: frequency changed to",freq,"Hz from",self.freq,"Hz"
+                self._loginfo("frequency changed to %d Hz from %d Hz" %(freq, self.freq))
                 self.freq = freq
                 self.set_frequency()
 
@@ -121,7 +133,7 @@ class Hugh():
             self.instant = instant
         else:
             if self.instant != instant:
-                print "INFO: instant transition changed to",instant,"from",self.instant
+                self._loginfo("instant transition changed to %r from %r" %(instant, self.instant))
                 self.instant = instant
  
         fade_through_black = self.scp.getboolean('transition', 'fade_through_black')
@@ -129,18 +141,18 @@ class Hugh():
            self.fade_through_black = fade_through_black
         else:
             if self.fade_through_black != fade_through_black:
-                print "INFO: fade through black transition changed to",fade_through_black,"from",self.fade_through_black
+                self._loginfo("fade through black transition changed to %r from %r" %(fade_through_black, self.fade_through_black))
                 self.fade_through_black = fade_through_black
 
         increment_count = self.scp.getint('transition', 'increment_count')
         if increment_count < 1 or increment_count > 255:
-            print "ERROR: increment_count of",increment_count,"is out of range. It must be between 1 and 255 inclusive; defaulting to 255."
+            self._logerror("increment_count of %d is out of range. It must be between 1 and 255 inclusive; defaulting to 255." % increment_count)
             increment_count = 255
         if self.increment_count is None:
             self.increment_count = increment_count
         else:
             if self.increment_count != increment_count:
-                print "INFO: increment_count changed to",increment_count,"from",self.increment_count
+                self._loginfo("increment_count changed to %d from %d" %(increment_count, self.increment_count))
                 self.increment_count = increment_count
 
         # color correction
@@ -150,14 +162,14 @@ class Hugh():
 
         for correction in color_correction:
             if correction > 1.0 or correction < 0.0:
-                print "ERROR: color correction value of",correction,"is out of range. It must be between 0.0 and 1.0 inclusive."
+                self._logerror("color correction value of %f is out of range. It must be between 0.0 and 1.0 inclusive." % correction)
                 return
             
         if self.color_correction is None:
             self.color_correction = color_correction
         else:
             if self.color_correction != color_correction:
-                print "INFO: color correction changed to", color_correction, "from", self.color_correction
+                self._loginfo("color correction changed to %f from %f" %(color_correction, self.color_correction))
                 self.color_correction = color_correction
                 self.parse_rgb_csv()
 
@@ -167,8 +179,6 @@ class Hugh():
             rgbreader = csv.reader(csvfile)
             for row in rgbreader:
                 rgb = [ int(float(i)) for i in row ]
-                #print "row",row
-                #print "rgb",rgb
                 if len(rgb) == 3:
                     self.fade_to_rgb(rgb, fade_through_black=self.fade_through_black, instant=self.instant)
 
@@ -176,7 +186,6 @@ class Hugh():
     def init_pins(self):
         """Initializes the three GPIO pins for output at the configured PWM frequency."""
         for pin in self.pins:
-           #print "pin", pin
            self.pi.set_mode(pin, pigpio.OUTPUT)
            self.pi.write(pin, 0)
            self.pi.set_PWM_dutycycle(pin, 0) # PWM off
