@@ -14,13 +14,17 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import pigpio, time, csv, os, ConfigParser, logging
+import pigpio, time, csv, os, ConfigParser, logging, logging.config
 
 class Hugh():
 
-    def __init__(self, config_file, rgb_csv_file):
-        self.logging = logging.getLogger(self.__class__.__name__)
-        logging.basicConfig(filename='hugh.log',level=logging.INFO)
+    def __init__(self, config_file, rgb_csv_file, logging_config_file=None):
+        if logging_config_file is None:
+            self.logging = logging.getLogger(self.__class__.__name__)
+            logging.basicConfig(filename='hugh.log',level=logging.INFO)
+        else:
+            logging.config.fileConfig(logging_config_file, disable_existing_loggers=True)
+            self.logging = logging.getLogger(self.__class__.__name__)
         
         self.pi = pigpio.pi() # local device GPIO
 
