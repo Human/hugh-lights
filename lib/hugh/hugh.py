@@ -20,7 +20,7 @@ class Hugh():
 
     def __init__(self, config_file, rgb_csv_file):
         self.logging = logging.getLogger(self.__class__.__name__)
-        logging.basicConfig(filename='hugh.log',level=logging.DEBUG)
+        logging.basicConfig(filename='hugh.log',level=logging.INFO)
         
         self.pi = pigpio.pi() # local device GPIO
 
