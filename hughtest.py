@@ -38,7 +38,6 @@ class AllTests(unittest.TestCase):
             self._check_rgb(expected)
 
     def test_target_1(self):
-        print "target_1"
         """
         A regression test for this bug, with color correction of 1,0, 0.55, 0.55:
         
@@ -46,10 +45,11 @@ class AllTests(unittest.TestCase):
         current_rgb 255 67 8 <-- OK
         
         rgb [37, 255, 233]
-        current_rgb 37 73 120 <-- WRONG: should be 37, 140, 128
+        current_rgb 37 73 120 <-- BUG: should be 37, 140, 128
         
-        only the color furthest from its target reached its target; the others were set to their diffs
+        Observation: Only the color furthest from its target reached its target; the others were set to their diffs.
         """
+        print "target_1"
         self.myHugh.color_correction = [ 1.0, 0.55, 0.55 ]
         self.myHugh.increment_count = 255
 
@@ -57,6 +57,10 @@ class AllTests(unittest.TestCase):
         self._test_targets(targets)
 
     def test_transitions(self):
+        """
+        A very long test that picks many combinations of color correction, increment count, and color targets,
+        and verifies that transitions to the color targets result in the expected values of each color.
+        """
         print "transitions"
 
         for red_correction in range (0, 101, 25):
@@ -66,7 +70,7 @@ class AllTests(unittest.TestCase):
                     self.myHugh.color_correction = [ red_correction / 100.0, green_correction / 100.0, blue_correction / 100.0 ]
                     print "color_correction",self.myHugh.color_correction
 
-                    for increment_count in range (1, 256, 5):
+                    for increment_count in range (1, 256, 51):
                         self.myHugh.increment_count = increment_count
                         print "increment_count",increment_count
 
@@ -74,6 +78,9 @@ class AllTests(unittest.TestCase):
                     
 
     def test_range(self):
+        """
+        A simple test that each pin can be set to any brightness, from 0-255. Color correction is not involved here.
+        """
         print "range"
         for pin in self.myHugh.pins:
             print " pwm pin", pin
