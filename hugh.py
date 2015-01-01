@@ -17,6 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from lib.hugh.hugh import Hugh
 
 myHugh = Hugh("/home/pi/hugh/hugh_config.ini", "/home/pi/hugh/rgb")
-myHugh.run()
+myHugh.daemon()
 #myHugh.rainbow_demo()
 #myHugh.christmas_demo()

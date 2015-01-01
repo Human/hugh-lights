@@ -195,7 +195,7 @@ class Hugh():
         for pin in self.pins:
            self.pi.set_PWM_frequency(pin, self.freq)
 
-    def run(self):
+    def daemon(self):
         """Monitor the config files for changes, then parse them and update accordingly."""
         while True:
             for i in (0, 1):
@@ -210,12 +210,14 @@ class Hugh():
             time.sleep(0.5)
 
     def rainbow_demo(self):
+        """Cycle through all the colors of the rainbow. Good for testing color correction."""
         rainbow = [[255, 0, 0], [255, 127, 0], [255, 255, 0], [0, 255, 0], [0, 0, 255], [127, 0, 255], [0, 0, 0]]
         for color in rainbow:
             self.fade_to_rgb(color, False, False)
             time.sleep(3)
 
     def christmas_demo(self):
+        """Cycle back and forth from red to green."""
         redgreen = [[255, 0, 0], [0, 255, 0]]
         while True:
             for color in redgreen:
